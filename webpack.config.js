@@ -1,37 +1,54 @@
-const path = require("path");
+//@ts-check
 
-module.exports = {
-  entry: "./src/extension.ts", // 入口文件
+"use strict";
+
+const path = require("path");
+const webpack = require("webpack");
+
+/**@type {import('webpack').Configuration}*/
+const config = {
+  target: "webworker", // vscode extensions run in webworker context for VS Code web 📖 -> https://webpack.js.org/configuration/target/#target
+
+  entry: "./src/extension.ts", // the entry point of this extension, 📖 -> https://webpack.js.org/configuration/entry-context/
   output: {
+    // the bundle is stored in the 'dist' folder (check package.json), 📖 -> https://webpack.js.org/configuration/output/
     path: path.resolve(__dirname, "dist"),
-    filename: "bundle.js", // 输出文件名称
+    filename: "extension.js",
+    libraryTarget: "commonjs2",
+    devtoolModuleFilenameTemplate: "../[resource-path]",
+  },
+  devtool: "source-map",
+  externals: {
+    vscode: "commonjs vscode", // the vscode-module is created on-the-fly and must be excluded. Add other modules that cannot be webpack'ed, 📖 -> https://webpack.js.org/configuration/externals/
+    fs:'fs',
+    url:'url',
+    path:'path'
+  },
+  resolve: {
+    // support reading TypeScript and JavaScript files, 📖 -> https://github.com/TypeStrong/ts-loader
+    mainFields: ["browser", "module", "main"], // look for `browser` entry point in imported node modules
+    extensions: [".ts", ".js"],
+    alias: {
+      // provides alternate implementation for node module and source files
+    },
+    fallback: {
+      // Webpack 5 no longer polyfills Node.js core modules automatically.
+      // see https://webpack.js.org/configuration/resolve/#resolvefallback
+      // for the list of Node.js core module polyfills.
+    },
   },
   module: {
     rules: [
       {
         test: /\.ts$/,
-        use: "ts-loader",
         exclude: /node_modules/,
-      },
-      {
-        test: /\.css$/,
-        use: ["style-loader", "css-loader"],
+        use: [
+          {
+            loader: "ts-loader",
+          },
+        ],
       },
     ],
   },
-  resolve: {
-    extensions: [".ts", ".js"], // 解析这些文件扩展名
-  },
-  devServer: {
-    contentBase: path.join(__dirname, "dist"),
-    compress: true,
-    port: 9000,
-  },
-   target: 'node',
-  externals: {
-    vscode: "commonjs vscode", // 排除 vscode 模块
-    // fs: "fs",
-    // path: "path",
-    // url: "url",
-  },
 };
+module.exports = config;

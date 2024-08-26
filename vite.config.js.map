@@ -1,1 +1,0 @@
-{"version":3,"file":"vite.config.js","sourceRoot":"","sources":["vite.config.ts"],"names":[],"mappings":";;AAAA,+BAAoC;AAEpC,kBAAe,IAAA,mBAAY,EAAC;IAC1B,KAAK,EAAE;QACL,MAAM,EAAE,MAAM,EAAE,OAAO;QACvB,aAAa,EAAE;YACb,MAAM,EAAE;gBACN,cAAc,EAAE,kBAAkB,EAAE,cAAc;gBAClD,cAAc,EAAE,WAAW,EAAE,gBAAgB;gBAC7C,cAAc,EAAE,cAAc,EAAE,gBAAgB;aACjD;SACF;KACF;CACF,CAAC,CAAC"}
