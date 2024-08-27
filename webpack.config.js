@@ -20,9 +20,26 @@ const config = {
   devtool: "source-map",
   externals: {
     vscode: "commonjs vscode", // the vscode-module is created on-the-fly and must be excluded. Add other modules that cannot be webpack'ed, 📖 -> https://webpack.js.org/configuration/externals/
-    fs:'fs',
-    url:'url',
-    path:'path'
+    fs: "fs",
+    url: "url",
+    path: "path",
+    child_process: "commonjs child_process",
+    buffer: "commonjs buffer",
+    "node:util": "commonjs node:util",
+    "node:stream": "commonjs node:stream",
+    "node:v8": "commonjs node:v8",
+    "node:url": "commonjs node:url",
+    "node:tty": "commonjs node:tty",
+    "node:timers/promises": "commonjs node:timers/promises",
+    "node:string_decoder": "commonjs node:string_decoder",
+    "node:stream/promises": "commonjs node:stream/promises",
+    "node:process": "commonjs node:process",
+    "node:path": "commonjs node:path",
+    "node:os": "commonjs node:os",
+    "node:fs": "commonjs node:fs",
+    "node:events": "commonjs node:events",
+    "node:buffer": "commonjs node:buffer",
+    "node:child_process": "commonjs node:child_process",
   },
   resolve: {
     // support reading TypeScript and JavaScript files, 📖 -> https://github.com/TypeStrong/ts-loader
