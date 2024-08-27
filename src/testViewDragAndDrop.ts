@@ -49,13 +49,16 @@ export class TestViewDragAndDrop
         console.log(this.context.extensionPath, "_dirname");
 
         // 定义 tsconfig.json 的路径
-        const tsconfigPath = path.join(this.rootPath, "package.json");
+        const tsconfigPath = path.join(
+          this.context.extensionPath,
+          "tsconfig-temp.json"
+        );
 
         // 读取 tsconfig.json 文件
         const tsconfig = JSON.parse(fs.readFileSync(tsconfigPath, "utf8"));
 console.log(tsconfig, "tsconfig");
         // 修改 include 部分
-        const additionalIncludes = ["src/hooks/**/*.ts"]; // 你要添加的路径
+        const additionalIncludes = [this.rootPath+'/src/hooks/**/*.ts']; // 你要添加的路径
         tsconfig.include = additionalIncludes;
 
         // 写回 tsconfig.json 文件
@@ -65,6 +68,7 @@ console.log(tsconfig, "tsconfig");
           "utf8"
         );
 
+  console.log(JSON.parse(fs.readFileSync(tsconfigPath, "utf8")),'after');
         files.forEach(async (pathItem) => {
           const pathfile = path.join(hooksPath, pathItem);
           const fileURL = pathToFileURL(pathfile).toString();

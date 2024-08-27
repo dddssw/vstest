@@ -1,8 +1,8 @@
 {
   "include": [
+    "d:\\GeCai\\purchase-supplier-pc/src/hooks/**/*.ts"
   ],
   "compilerOptions": {
-    "types": ["element-plus/global", "pinia-plugin-persist"],
     "target": "esnext",
     "module": "esnext",
     "useDefineForClassFields": true,
@@ -13,7 +13,10 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "esModuleInterop": true,
-    "lib": ["esnext", "dom"],
+    "lib": [
+      "esnext",
+      "dom"
+    ],
     "baseUrl": ".",
     "paths": {
       "@/*": [
