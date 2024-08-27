@@ -47,28 +47,28 @@ export class TestViewDragAndDrop
           return;
         }
         console.log(this.context.extensionPath, "_dirname");
+try {
+  // 定义 tsconfig.json 的路径
+  const tsconfigPath = path.join(
+    this.context.extensionPath,
+    "tsconfig-temp.json"
+  );
 
-        // 定义 tsconfig.json 的路径
-        const tsconfigPath = path.join(
-          this.context.extensionPath,
-          "tsconfig-temp.json"
-        );
+  // 读取 tsconfig.json 文件
+  const tsconfig = JSON.parse(fs.readFileSync(tsconfigPath, "utf8"));
+  console.log(tsconfig, "tsconfig");
+  // 修改 include 部分
+  const additionalIncludes = [this.rootPath + "/src/hooks/**/*.ts"]; // 你要添加的路径
+  tsconfig.include = additionalIncludes;
 
-        // 读取 tsconfig.json 文件
-        const tsconfig = JSON.parse(fs.readFileSync(tsconfigPath, "utf8"));
-console.log(tsconfig, "tsconfig");
-        // 修改 include 部分
-        const additionalIncludes = [this.rootPath+'/src/hooks/**/*.ts']; // 你要添加的路径
-        tsconfig.include = additionalIncludes;
+  // 写回 tsconfig.json 文件
+  fs.writeFileSync(tsconfigPath, JSON.stringify(tsconfig, null, 2), "utf8");
+} catch (error) {
+  console.log(error)
+}
+  
 
-        // 写回 tsconfig.json 文件
-        fs.writeFileSync(
-          tsconfigPath,
-          JSON.stringify(tsconfig, null, 2),
-          "utf8"
-        );
 
-  console.log(JSON.parse(fs.readFileSync(tsconfigPath, "utf8")),'after');
         files.forEach(async (pathItem) => {
           const pathfile = path.join(hooksPath, pathItem);
           const fileURL = pathToFileURL(pathfile).toString();
@@ -87,11 +87,11 @@ console.log(tsconfig, "tsconfig");
 
           const jsPath = fileURL.slice(0, -2) + "js";
           const hook = await import(/* webpackIgnore: true */ jsPath);
-          console.log(hook, "import");
+          console.log(hook.default,hook, "import");
         });
       });
     }
-    return Promise.resolve([{ label: "123" }]);
+    return Promise.resolve([{ label: "1234" }]);
   }
 
   //   getParent?(element: vscode.TreeItem) {

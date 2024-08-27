@@ -1,6 +1,6 @@
 {
   "include": [
-    "d:\\GeCai\\purchase-supplier-pc/src/hooks/**/*.ts"
+    "d:\\geli\\dmall-vue/src/hooks/**/*.ts"
   ],
   "compilerOptions": {
     "target": "esnext",
@@ -9,7 +9,7 @@
     "moduleResolution": "node",
     "strict": true,
     "jsx": "preserve",
-    "sourceMap": true,
+    "sourceMap": false,
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "esModuleInterop": true,
