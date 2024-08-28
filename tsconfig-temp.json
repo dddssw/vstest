@@ -1,6 +1,6 @@
 {
   "include": [
-    "d:\\geli\\dmall-vue/src/hooks/**/*.ts"
+    "d:\\GeCai\\purchase-supplier-pc/src/hooks/**/*.ts"
   ],
   "compilerOptions": {
     "target": "esnext",

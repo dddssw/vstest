@@ -32,66 +32,38 @@ export class TestViewDragAndDrop
     return element;
   }
 
-  getChildren(element?: vscode.TreeItem): Thenable<vscode.TreeItem[]> {
+  async getChildren(element?: vscode.TreeItem): Promise<Hooks[]> {
     if (!this.rootPath) {
       vscode.window.showInformationMessage("please open project");
       return Promise.resolve([]);
     }
-    console.log(this.rootPath, "this.rootPath");
     if (!element) {
       const hooksPath = path.join(this.rootPath, "src", "hooks");
+      const files = fs.readdirSync(hooksPath);
+      this.modifyTsConfig();
+      await this.generateJs();
+      const hookList: Hooks[] = [];
+      files.forEach(async(pathItem) => {
+      const pathfile = path.join(hooksPath, pathItem);
+      const fileURL = pathToFileURL(pathfile).toString();
+      const jsPath = fileURL.slice(0, -2) + "js";
 
-      fs.readdir(hooksPath, (err, files) => {
-        if (err) {
-          console.error("Error reading directory:", err);
-          return;
-        }
-        console.log(this.context.extensionPath, "_dirname");
-try {
-  // 定义 tsconfig.json 的路径
-  const tsconfigPath = path.join(
-    this.context.extensionPath,
-    "tsconfig-temp.json"
-  );
-
-  // 读取 tsconfig.json 文件
-  const tsconfig = JSON.parse(fs.readFileSync(tsconfigPath, "utf8"));
-  console.log(tsconfig, "tsconfig");
-  // 修改 include 部分
-  const additionalIncludes = [this.rootPath + "/src/hooks/**/*.ts"]; // 你要添加的路径
-  tsconfig.include = additionalIncludes;
-
-  // 写回 tsconfig.json 文件
-  fs.writeFileSync(tsconfigPath, JSON.stringify(tsconfig, null, 2), "utf8");
-} catch (error) {
-  console.log(error)
-}
-  
-
-
-        files.forEach(async (pathItem) => {
-          const pathfile = path.join(hooksPath, pathItem);
-          const fileURL = pathToFileURL(pathfile).toString();
-          try {
-            await execa(
-              "npx",
-              ["tsc", "-p", this.context.extensionPath + "/tsconfig-temp.json"],
-              {
-                cwd: this.rootPath,
-                stdio: "inherit",
-              }
-            );
-          } catch (error) {
-            console.error(error, "error");
-          }
-
-          const jsPath = fileURL.slice(0, -2) + "js";
-          const hook = await import(/* webpackIgnore: true */ jsPath);
-          console.log(hook.default,hook, "import");
-        });
+      // 等待每个 import 完成
+      const hook = await import(/* webpackIgnore: true */ jsPath);
+      let isExport = 1;
+      if (!hook) {
+        isExport = 0;
+      }
+      hookList.push(new Hooks(pathItem.slice(0, -3), hook, isExport));
       });
+
+    // 在所有文件处理完成后删除 JS 文件
+    this.deleteJs(hooksPath);
+      return Promise.resolve(hookList);
+    } else {
+     
+      console.log(element,'element')
     }
-    return Promise.resolve([{ label: "1234" }]);
   }
 
   //   getParent?(element: vscode.TreeItem) {
@@ -119,5 +91,71 @@ try {
     token: vscode.CancellationToken
   ): Thenable<void> | void {
     throw new Error("Method not implemented.");
+  }
+  async generateJs() {
+    try {
+      await execa(
+        "npx",
+        ["tsc", "-p", this.context.extensionPath + "/tsconfig-temp.json"],
+        {
+          cwd: this.rootPath,
+          stdio: "inherit",
+        }
+      );
+    } catch (error) {
+      console.error(error, "error");
+    }
+  }
+  deleteJs(hooksPath: string) {
+    try {
+      // 读取目录内容（同步）
+      const files = fs.readdirSync(hooksPath);
+
+      // 遍历文件
+      files.forEach((file) => {
+        const filePath = path.join(hooksPath, file);
+        console.log(files, "files");
+        // 检查文件是否是 .js 文件
+        if (path.extname(file) === ".js") {
+          try {
+            // 删除文件（同步）
+            fs.unlinkSync(filePath);
+            console.log("Deleted file:", filePath);
+          } catch (err) {
+            console.error("Error deleting file:", err);
+          }
+        }
+      });
+    } catch (err) {
+      console.error("Unable to scan directory:", err);
+    }
+  }
+  modifyTsConfig() {
+    const tsconfigPath = path.join(
+      this.context.extensionPath,
+      "tsconfig-temp.json"
+    );
+
+    // 读取 tsconfig.json 文件
+    const tsconfig = JSON.parse(fs.readFileSync(tsconfigPath, "utf8"));
+
+    // 修改 include 部分
+    const additionalIncludes = [this.rootPath + "/src/hooks/**/*.ts"]; // 你要添加的路径
+    tsconfig.include = additionalIncludes;
+
+    // 写回 tsconfig.json 文件
+    fs.writeFileSync(tsconfigPath, JSON.stringify(tsconfig, null, 2), "utf8");
+  }
+}
+
+
+export class Hooks extends vscode.TreeItem {
+  constructor(
+    public readonly label: string,
+    public readonly hook: boolean,
+    public readonly collapsibleState: vscode.TreeItemCollapsibleState,
+    // public readonly command?: vscode.Command
+  ) {
+    super(label, collapsibleState);
   }
 }
