@@ -13,6 +13,7 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "esModuleInterop": true,
+    "removeComments": false,
     "lib": [
       "esnext",
       "dom"
