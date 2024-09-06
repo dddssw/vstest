@@ -6,6 +6,7 @@ const highlightDecoration = vscode.window.createTextEditorDecorationType({
   isWholeLine: true, // 如果需要整行高亮
 });
 export function activate(context: vscode.ExtensionContext) {
+  vscode.window.showInformationMessage('hello')
   vscode.commands.registerCommand(
     "vstest.importHook",
     async (key,value,path) => {

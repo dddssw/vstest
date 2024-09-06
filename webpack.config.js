@@ -9,11 +9,16 @@ const webpack = require("webpack");
 const config = {
   target: "webworker", // vscode extensions run in webworker context for VS Code web 📖 -> https://webpack.js.org/configuration/target/#target
 
-  entry: "./src/extension.ts", // the entry point of this extension, 📖 -> https://webpack.js.org/configuration/entry-context/
+  //entry: "./src/extension.ts", // the entry point of this extension, 📖 -> https://webpack.js.org/configuration/entry-context/
+  entry: {
+    extension: "./src/extension.ts",
+    esbuild: "esbuild", // 将 esbuild 作为一个独立的入口点
+  },
   output: {
     // the bundle is stored in the 'dist' folder (check package.json), 📖 -> https://webpack.js.org/configuration/output/
     path: path.resolve(__dirname, "dist"),
-    filename: "extension.js",
+    // filename: "extension.js",
+    filename: "[name].js",
     libraryTarget: "commonjs2",
     devtoolModuleFilenameTemplate: "../[resource-path]",
   },
@@ -25,6 +30,9 @@ const config = {
     path: "path",
     child_process: "commonjs child_process",
     buffer: "commonjs buffer",
+    tty: "commonjs tty",
+    os: "commonjs os",
+    crypto: "commonjs crypto",
     "node:util": "commonjs node:util",
     "node:stream": "commonjs node:stream",
     "node:v8": "commonjs node:v8",
@@ -41,6 +49,7 @@ const config = {
     "node:buffer": "commonjs node:buffer",
     "node:child_process": "commonjs node:child_process",
     "node:fs/promises": "commonjs node:fs/promises",
+    esbuild: "esbuild",
   },
   resolve: {
     // support reading TypeScript and JavaScript files, 📖 -> https://github.com/TypeStrong/ts-loader
@@ -57,6 +66,10 @@ const config = {
   },
   module: {
     rules: [
+      {
+        test: /\.d\.ts$/,
+        use: "ignore-loader",
+      },
       {
         test: /\.ts$/,
         exclude: /node_modules/,

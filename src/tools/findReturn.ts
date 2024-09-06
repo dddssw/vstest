@@ -1,13 +1,8 @@
 //@ts-nocheck
 const fs = require("fs");
 
-export default function findReturn(path,name) {
+export default function findReturn(code,name) {
   try {
-    // 使用同步 API 读取文件
-    const data = fs.readFileSync(path, "utf8");
-
-    // 清理代码
-    const cleanedCode = data.replace(/\s+/g, " ").trim();
 
     // 查找最后的 return 语句
     const findLastReturn = (code, start, end) => {
@@ -34,25 +29,25 @@ export default function findReturn(path,name) {
     };
 
     // 假设 useSlicePage 函数在文件的起始位置
-    const funcStart = cleanedCode.indexOf(name);
+    const funcStart = code.indexOf(name);
     if (funcStart === -1) {
       console.log("Function not found");
       return;
     }
 
-    const braceStart = cleanedCode.indexOf("{", funcStart);
+    const braceStart = code.indexOf("{", funcStart);
     if (braceStart === -1) {
       console.log("Left brace not found");
       return;
     }
 
-    const braceEnd = findBraces(cleanedCode, braceStart + 1);
+    const braceEnd = findBraces(code, braceStart + 1);
     if (braceEnd === -1) {
       console.log("Right brace not found");
       return;
     }
 
-    const lastReturnPos = findLastReturn(cleanedCode, braceStart, braceEnd);
+    const lastReturnPos = findLastReturn(code, braceStart, braceEnd);
     return lastReturnPos;
   } catch (err) {
     console.error(err);
