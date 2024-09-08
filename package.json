@@ -14,12 +14,9 @@
   "contributes": {
     "commands": [
       {
-        "command": "vstest.helloWorld",
-        "title": "Hello World"
-      },
-      {
         "command": "vstest.importHook",
-        "title": "import hook"
+        "title": "only checked",
+        "icon": "$(filter)"
       }
     ],
     "views": {
@@ -27,6 +24,15 @@
         {
           "id": "hooks",
           "name": "hooks"
+        }
+      ]
+    },
+    "menus": {
+      "view/item/context": [
+        {
+          "command": "vstest.importHook",
+          "when": "view == hooks && viewItem == export",
+          "group": "inline"
         }
       ]
     }

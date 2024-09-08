@@ -10,7 +10,9 @@ const parser = require("@babel/parser");
 const traverse = require("@babel/traverse").default;
 import findReturn from "./tools/findReturn";
 import findParams from "./tools/findParams";
-const esbuild = require(/* webpackIgnore: true */ "./esbuild.js");
+const esbuild = require("esbuild");
+const ts = require("typescript");
+import checkState from "./checkState";
 
 export class TestViewDragAndDrop
   implements vscode.TreeDataProvider<vscode.TreeItem>
@@ -27,6 +29,22 @@ export class TestViewDragAndDrop
       showCollapseAll: true,
       canSelectMany: true,
     });
+    view.onDidChangeCheckboxState(
+      (event: vscode.TreeCheckboxChangeEvent<MyTreeItem>) => {
+        try {
+              console.log("Checkbox state changed:", event);
+              const data = checkState.get(event.items[0][0].secData.label);
+              let index = data.findIndex(
+                (item) => item.returnName === event.items[0][0].label
+              );
+              console.log(index, "index");
+              data[index].checkboxState = event.items[0][0].checkboxState;
+        } catch (error) {
+          console.log(error,'kkk')
+        }
+    
+      }
+    );
     context.subscriptions.push(view);
     this.context = context;
   }
@@ -48,26 +66,43 @@ export class TestViewDragAndDrop
       files = fs.readdirSync(hooksPath);
       const hookList = await this.getImportData(files, hooksPath);
       return hookList as Hooks[];
+    } else if ("returnData" in element) {
+      console.log(element, "sss1");
+      const childrenList: Hooks[] = [];
+
+      for (const value of element.returnData) {
+        const comments = value.comment;
+        const returnName = value.returnName;
+        const returnData = value.returnData;
+        childrenList.push(new ReturnChildHooks(returnName, 0, comments, 1,element));
+      }
+
+      return childrenList;
     } else {
+      console.log(element, "sss");
       const childrenList: Hooks[] = [];
       for (const [key, value] of element.hook) {
-        const commentList = value.comment;
-        let comments = "";
-        if (commentList) {
-          comments = commentList.map((item) => item.value.trim()).join("\n");
-        }
-        childrenList.push(
-          new ChildHooks(
-            key,
-            0,
-            {
-              command: "vstest.importHook",
-              title: "import hook",
-              arguments: [key, value, element.label],
-            },
-            comments
-          )
+        const comments = value.comment;
+        const returnData = value.returnData;
+        const initialCheckedState = value.returnData.map(item=>({...item,checkboxState:1}));
+        checkState.set(key, initialCheckedState);
+        const secData = new ChildHooks(
+          key,
+          value.returnType === "ObjectExpression"?1:0,
+          {
+            command: "vstest.importHook",
+            title: "import hook",
+            arguments: [value],
+          },
+          comments,
+          returnData,
+          key,
+          value,
+          element.label
         );
+        secData.contextValue=value.returnType === "ObjectExpression"?'export':null ;
+        secData.params = value.params;
+        childrenList.push(secData);
       }
       return childrenList;
     }
@@ -96,62 +131,34 @@ export class TestViewDragAndDrop
         console.log(filePathJs, "filePathJs");
 
         let tsCode = fs.readFileSync(pathfile, "utf8");
-        const result = await esbuild.transform(tsCode, {
-          loader: "ts",
-          target: "esnext", // 指定输出的 JavaScript 版本
-          sourcemap: false, // 是否生成源映射文件
-          legalComments: "inline",
+        // const result = await esbuild.transform(tsCode, {
+        //   loader: "ts",
+        //   target: "esnext", // 指定输出的 JavaScript 版本
+        //   sourcemap: false, // 是否生成源映射文件
+        //   legalComments: "inline",
+        // });
+        const result = ts.transpileModule(tsCode, {
+          compilerOptions: {
+            target: ts.ScriptTarget.ESNext,
+          },
         });
 
-        tsCode = result.code;
+        tsCode = result.outputText;
         const ast = parser.parse(tsCode, {
           sourceType: "module",
         });
 
         let isExport = false;
         const hooks = new Map();
-        const returnsObj = new Map();
-        const paramsObj = new Map();
 
         traverse(ast, {
           ExportNamedDeclaration({ node }) {
             // 检查是否存在声明，如变量声明、函数声明等
             if (node.declaration) {
               console.log(node, "node.declaration");
-
               isExport = true;
-              const { params, body, type } = node.declaration;
-              const comment = node.leadingComments;
               const name = node.declaration.id.name;
-              if (type === "Identifier") {
-                const returns = findReturn(tsCode, name);
-                const params = findParams(tsCode, name);
-                hooks.set(name, {
-                  name,
-                  params,
-                  type,
-                  returns,
-                  comment,
-                });
-              } else {
-                console.log(body, "bpdy1");
-                const find = body.body.find(
-                  (item) => item.type === "ReturnStatement"
-                );
-                const returnsData = find.argument.properties
-                  ? find.argument.properties
-                      .map((item) => item.key.name)
-                      .join(",")
-                  : find.argument.name;
-                const paramsData = params.map((item) => item.name).join(",");
-                hooks.set(name, {
-                  name,
-                  params: paramsData,
-                  type,
-                  returns: returnsData,
-                  comment,
-                });
-              }
+              hooks.set(name, {...dealExport(node, pathItem.slice(0, -3)),isDefault:false});
             }
           },
           ExportDefaultDeclaration({ node }) {
@@ -159,39 +166,11 @@ export class TestViewDragAndDrop
             if (node.declaration) {
               console.log(node, "node.declaration.default");
               isExport = true;
-              const { params, body, type, loc } = node.declaration;
-               const name = node.declaration.id.name;
-              const comment = node.leadingComments;
-              if (type === "Identifier") {
-                const returns = findReturn(tsCode, name);
-                const params = findParams(tsCode, name);
-                console.log(tsCode, name, "all");
-                hooks.set("default", {
-                  name,
-                  params,
-                  type,
-                  returns,
-                  comment,
-                });
-              } else {
-                console.log(body, "bpdy2");
-                const find = body.body.find(
-                  (item) => item.type === "ReturnStatement"
-                );
-                const returnsData = find.argument.properties
-                  ? find.argument.properties
-                      .map((item) => item.key.name)
-                      .join(",")
-                  : find.argument.name;
-                const paramsData = params.map((item) => item.name).join(",");
-                hooks.set("default", {
-                  name,
-                  params: paramsData,
-                  type,
-                  returns: returnsData,
-                  comment,
-                });
-              }
+              const name = node.declaration.id?.name;
+              hooks.set("default", {
+                ...dealExport(node, pathItem.slice(0, -3)),
+                isDefault: true,
+              });
             }
           },
         });
@@ -224,8 +203,104 @@ export class ChildHooks extends vscode.TreeItem {
     public readonly label: string,
     public readonly collapsibleState: vscode.TreeItemCollapsibleState, // public readonly command?: vscode.Command
     public readonly command: any,
-    public readonly tooltip: string
+    public readonly tooltip: string,
+    public readonly returnData: string,
+    public readonly key: string,
+    public readonly vaue: any,
+    public readonly filePath: string,
+    public readonly params: any,
   ) {
     super(label, collapsibleState);
   }
+}
+export class ReturnChildHooks extends vscode.TreeItem {
+  constructor(
+    public readonly label: string,
+    public readonly collapsibleState: vscode.TreeItemCollapsibleState, // public readonly command?: vscode.Command
+    public readonly tooltip: string,
+    public readonly checkboxState: 0 | 1,
+    public readonly secData: any
+  ) {
+    super(label, collapsibleState);
+  }
+}
+function dealComment(node) {
+  let comments = "";
+  if (node.leadingComments) {
+    comments = node.leadingComments.map((item) => item.value.trim()).join("\n");
+  }
+  return comments;
+}
+function dealExport(node, fileName) {
+  const comment = dealComment(node);
+  const { declaration } = node;
+  const { params = "" } = node;
+  let name = declaration.id ? declaration.id.name : fileName;
+  const isFunction = declaration.type.includes("Function");
+  let returnData = [];
+  let returnType = "";
+  //导出的函数
+  if (isFunction) {
+    const {
+      body: { body },
+    } = declaration;
+    const index = body.findIndex((item) => item.type === "ReturnStatement");
+    if (!~index) {
+      //   vscode.window.showErrorMessage(
+      //     `在 ${fileName}中${name ?? "默认导出"}没有return任何内容`
+      //   );
+      throw new Error(
+        `在 ${fileName}中${name ?? "默认导出"}没有return任何内容`
+      );
+    }
+    const returnNode = body[index];
+    const { argument } = returnNode;
+    //return返回的是对象
+    if (argument.type === "ObjectExpression") {
+      returnType = "ObjectExpression";
+      const { properties } = argument;
+      properties.forEach((item) => {
+        const key = item.key.name;
+        const value = item.value.name;
+
+        const index = body.findIndex((returnBody) => {
+          if (returnBody.declarations) {
+            return returnBody.declarations[0].id.name === value;
+          }
+        });
+        if (!~index) {
+          //   vscode.window.showErrorMessage(`在 ${fileName}中出现语法错误`);
+          throw new Error(`在 ${fileName}中出现语法错误`);
+        }
+        const comment = dealComment(body[index]);
+        returnData.push({ returnName: key, comment });
+      });
+    } else {
+      returnType = "NormalExpression";
+      const index = body.findIndex((returnBody) => {
+        if (returnBody.declarations) {
+          return returnBody.declarations[0].id.name === argument.name;
+        }
+      });
+      if (!~index) {
+        //   vscode.window.showErrorMessage(`在 ${fileName}中出现语法错误`);
+        throw new Error(`在 ${fileName}中出现语法错误`);
+      }
+      const comment = dealComment(body[index]);
+      returnData.push({ returnName: argument.name, comment });
+    }
+  } else {
+    if (declaration) {
+      name = declaration.declarations[0].id.name;
+    }
+  }
+  return {
+    name,
+    comment,
+    params,
+    isFunction,
+    returnData,
+    returnType,
+    fileName,
+  };
 }

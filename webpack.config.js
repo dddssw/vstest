@@ -8,17 +8,11 @@ const webpack = require("webpack");
 /**@type {import('webpack').Configuration}*/
 const config = {
   target: "webworker", // vscode extensions run in webworker context for VS Code web 📖 -> https://webpack.js.org/configuration/target/#target
-
-  //entry: "./src/extension.ts", // the entry point of this extension, 📖 -> https://webpack.js.org/configuration/entry-context/
-  entry: {
-    extension: "./src/extension.ts",
-    esbuild: "esbuild", // 将 esbuild 作为一个独立的入口点
-  },
+  entry: "./src/extension.ts", // the entry point of this extension, 📖 -> https://webpack.js.org/configuration/entry-context/
   output: {
     // the bundle is stored in the 'dist' folder (check package.json), 📖 -> https://webpack.js.org/configuration/output/
     path: path.resolve(__dirname, "dist"),
-    // filename: "extension.js",
-    filename: "[name].js",
+    filename: "extension.js",
     libraryTarget: "commonjs2",
     devtoolModuleFilenameTemplate: "../[resource-path]",
   },

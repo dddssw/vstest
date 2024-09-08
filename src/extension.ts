@@ -1,18 +1,18 @@
 import * as vscode from "vscode";
-
+import checkState from "./checkState";
 import { TestViewDragAndDrop } from "./testViewDragAndDrop";
 const highlightDecoration = vscode.window.createTextEditorDecorationType({
   backgroundColor: 'rgba(173, 216, 230, 0.3)' ,
   isWholeLine: true, // 如果需要整行高亮
 });
 export function activate(context: vscode.ExtensionContext) {
-  vscode.window.showInformationMessage('hello')
   vscode.commands.registerCommand(
     "vstest.importHook",
-    async (key,value,path) => {
+    async (value) => {
+      console.log(checkState);
       console.log(value);
-      const text =key==='default'?value.name:'{'+value.name+'}';
-      const insert = `import ${text} from '@/hooks/${path}'`;
+      const text = value.isDefault ? value.name : "{" + value.name + "}";
+      const insert = `import ${text} from '@/hooks/${value.fileName}'`;
          
       const position = getFirstImportLineNumber();
       if (!position) {
@@ -23,9 +23,23 @@ export function activate(context: vscode.ExtensionContext) {
       });
       try {
         const constArea = getFirstConstPosition();
-  
+        const params = value.params.length>0?value.params.join(','):'';
+        const checkInfo = checkState.get(value.label);
+//         const returnDataFilter = value.returnData.filter(item=>{
+// const find = checkInfo.find(i=>i.returnName === item.returnName);
+// if(find.checkboxState===1){
+//   return true
+// }
+//         });
+        
+        const returns =
+          value.returnType === "ObjectExpression"
+            ? "{" +
+              value.returnData.map((item) => item.returnName).join(",") +
+              "}"
+            : value.returnData.map((item) => item.returnName).join(","); ;
         const snippet = new vscode.SnippetString(
-          `const {${value.returns}} = ${value.name}(${value.params??''})\r\n`
+          `const ${returns} = ${value.name}(${params})\r\n`
         );
         await vscode.window.activeTextEditor?.insertSnippet(snippet, constArea);
         // 获取插入位置的范围
@@ -49,7 +63,7 @@ export function activate(context: vscode.ExtensionContext) {
           ); // 取消装饰
         }, 3000); // 5秒后取消装饰
       } catch (error) {
-        console.log(error, "sss");
+        console.log(error, "exten");
       }
     }
   );
