@@ -10,13 +10,10 @@ const parser = require("@babel/parser");
 const traverse = require("@babel/traverse").default;
 import findReturn from "./tools/findReturn";
 import findParams from "./tools/findParams";
-const esbuild = require("esbuild");
 const ts = require("typescript");
 import checkState from "./checkState";
 
-export class TestViewDragAndDrop
-  implements vscode.TreeDataProvider<vscode.TreeItem>
-{
+export class TestViewDragAndDrop implements vscode.TreeDataProvider<vscode.TreeItem> {
   rootPath =
     vscode.workspace.workspaceFolders &&
     vscode.workspace.workspaceFolders.length > 0
@@ -32,24 +29,34 @@ export class TestViewDragAndDrop
     view.onDidChangeCheckboxState(
       (event: vscode.TreeCheckboxChangeEvent<MyTreeItem>) => {
         try {
-              console.log("Checkbox state changed:", event);
-              const data = checkState.get(event.items[0][0].secData.label);
-              let index = data.findIndex(
-                (item) => item.returnName === event.items[0][0].label
-              );
-              console.log(index, "index");
-              data[index].checkboxState = event.items[0][0].checkboxState;
+          console.log("Checkbox state changed:", event);
+          
+          const data = checkState.get(event.items[0][0].parent);
+          let index = data.findIndex(
+            (item) => item.returnName === event.items[0][0].label
+          );
+          console.log(index, "index");
+          data[index].checkboxState = event.items[0][0].checkboxState;
         } catch (error) {
-          console.log(error,'kkk')
+          console.log(error, "kkk");
         }
-    
       }
+    );
+    vscode.commands.registerCommand("vstest.refreshHooks", () =>
+      this.refresh()
     );
     context.subscriptions.push(view);
     this.context = context;
   }
 
-  onDidChangeTreeData?: vscode.Event<any> | undefined;
+  private _onDidChangeTreeData: vscode.EventEmitter<
+    Dependency | undefined | void
+  > = new vscode.EventEmitter<Dependency | undefined | void>(); //注册一个订阅
+  readonly onDidChangeTreeData: vscode.Event<Dependency | undefined | void> =
+    this._onDidChangeTreeData.event; //通知树形视图的数据已经发生了变化，需要更新显示
+  refresh(): void {
+    this._onDidChangeTreeData.fire(); //通知订阅更新
+  }
 
   getTreeItem(element: Hooks): Hooks {
     return element;
@@ -65,7 +72,7 @@ export class TestViewDragAndDrop
       let files = fs.readdirSync(hooksPath);
       files = fs.readdirSync(hooksPath);
       const hookList = await this.getImportData(files, hooksPath);
-      return hookList as Hooks[];
+      return hookList;
     } else if ("returnData" in element) {
       console.log(element, "sss1");
       const childrenList: Hooks[] = [];
@@ -74,21 +81,39 @@ export class TestViewDragAndDrop
         const comments = value.comment;
         const returnName = value.returnName;
         const returnData = value.returnData;
-        childrenList.push(new ReturnChildHooks(returnName, 0, comments, 1,element));
+        childrenList.push(
+          new ReturnChildHooks(returnName, 0, comments, 1, element.value.name)
+        );
       }
 
       return childrenList;
+    }else if (element.label === "vueRouter") {
+      const route = new vscode.TreeItem("useRoute", 0);
+      route.checkboxState = 1;
+      route.parent = 'vueRouter';
+      const router = new vscode.TreeItem("useRouter", 0);
+      router.checkboxState = 1;
+      router.parent = "vueRouter";
+      const routerList = [route, router];
+      checkState.set("vueRouter", [
+        { returnName: "useRoute", checkboxState: 1 },
+        { returnName: "useRouter", checkboxState: 1 },
+      ]);
+      return routerList;
     } else {
       console.log(element, "sss");
       const childrenList: Hooks[] = [];
       for (const [key, value] of element.hook) {
         const comments = value.comment;
         const returnData = value.returnData;
-        const initialCheckedState = value.returnData.map(item=>({...item,checkboxState:1}));
-        checkState.set(key, initialCheckedState);
+        const initialCheckedState = value.returnData.map((item) => ({
+          ...item,
+          checkboxState: 1,
+        }));
+        checkState.set(value.name, initialCheckedState);
         const secData = new ChildHooks(
           key,
-          value.returnType === "ObjectExpression"?1:0,
+          value.returnType === "ObjectExpression" ? 1 : 0,
           {
             command: "vstest.importHook",
             title: "import hook",
@@ -100,7 +125,8 @@ export class TestViewDragAndDrop
           value,
           element.label
         );
-        secData.contextValue=value.returnType === "ObjectExpression"?'export':null ;
+        secData.contextValue =
+          value.returnType === "ObjectExpression" ? "export" : null;
         secData.params = value.params;
         childrenList.push(secData);
       }
@@ -121,7 +147,15 @@ export class TestViewDragAndDrop
 
   async getImportData(files: string[], hooksPath: string) {
     let hookList: Hooks[] = [];
-
+    const vueRouter = new vscode.TreeItem("vueRouter", 1);
+    vueRouter.contextValue = "vueRouterExport";
+    const value=['useRoute','useRouter'];
+    vueRouter.command = {
+      command: "vstest.importToolHook",
+      title: "import toolHook",
+      arguments: [value],
+    };
+      hookList.push(vueRouter);
     for (const pathItem of files) {
       try {
         const pathfile = path.join(hooksPath, pathItem);
@@ -158,7 +192,10 @@ export class TestViewDragAndDrop
               console.log(node, "node.declaration");
               isExport = true;
               const name = node.declaration.id.name;
-              hooks.set(name, {...dealExport(node, pathItem.slice(0, -3)),isDefault:false});
+              hooks.set(name, {
+                ...dealExport(node, pathItem.slice(0, -3)),
+                isDefault: false,
+              });
             }
           },
           ExportDefaultDeclaration({ node }) {
@@ -206,7 +243,7 @@ export class ChildHooks extends vscode.TreeItem {
     public readonly tooltip: string,
     public readonly returnData: string,
     public readonly key: string,
-    public readonly vaue: any,
+    public readonly value: any,
     public readonly filePath: string,
     public readonly params: any,
   ) {
@@ -219,7 +256,7 @@ export class ReturnChildHooks extends vscode.TreeItem {
     public readonly collapsibleState: vscode.TreeItemCollapsibleState, // public readonly command?: vscode.Command
     public readonly tooltip: string,
     public readonly checkboxState: 0 | 1,
-    public readonly secData: any
+    public readonly parent: any
   ) {
     super(label, collapsibleState);
   }
@@ -234,7 +271,7 @@ function dealComment(node) {
 function dealExport(node, fileName) {
   const comment = dealComment(node);
   const { declaration } = node;
-  const { params = "" } = node;
+  const { declaration:{params = ""} } = node;
   let name = declaration.id ? declaration.id.name : fileName;
   const isFunction = declaration.type.includes("Function");
   let returnData = [];
@@ -266,13 +303,12 @@ function dealExport(node, fileName) {
         const index = body.findIndex((returnBody) => {
           if (returnBody.declarations) {
             return returnBody.declarations[0].id.name === value;
+          }else if (returnBody.id) {
+            return returnBody.id.name === value;
           }
         });
-        if (!~index) {
-          //   vscode.window.showErrorMessage(`在 ${fileName}中出现语法错误`);
-          throw new Error(`在 ${fileName}中出现语法错误`);
-        }
-        const comment = dealComment(body[index]);
+
+        const comment = ~index?dealComment(body[index]):'';
         returnData.push({ returnName: key, comment });
       });
     } else {

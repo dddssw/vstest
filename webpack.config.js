@@ -43,7 +43,6 @@ const config = {
     "node:buffer": "commonjs node:buffer",
     "node:child_process": "commonjs node:child_process",
     "node:fs/promises": "commonjs node:fs/promises",
-    esbuild: "esbuild",
   },
   resolve: {
     // support reading TypeScript and JavaScript files, 📖 -> https://github.com/TypeStrong/ts-loader

@@ -1,8 +1,8 @@
 {
   "name": "vstest",
-  "displayName": "vstest",
+  "displayName": "easy import hook(vue)",
   "description": "",
-  "version": "0.0.9",
+  "version": "0.1.0",
   "engines": {
     "vscode": "^1.54.0"
   },
@@ -10,6 +10,7 @@
   "categories": [
     "Other"
   ],
+  "icon": "icon.jfif",
   "main": "./dist/extension",
   "contributes": {
     "commands": [
@@ -17,6 +18,16 @@
         "command": "vstest.importHook",
         "title": "only checked",
         "icon": "$(filter)"
+      },
+      {
+        "command": "vstest.refreshHooks",
+        "title": "refresh",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "vstest.importToolHook",
+        "title": "importToolHook",
+        "icon": "$(filter-filled)"
       }
     ],
     "views": {
@@ -28,10 +39,22 @@
       ]
     },
     "menus": {
+      "view/title": [
+        {
+          "command": "vstest.refreshHooks",
+          "when": "view == hooks",
+          "group": "navigation"
+        }
+      ],
       "view/item/context": [
         {
           "command": "vstest.importHook",
           "when": "view == hooks && viewItem == export",
+          "group": "inline"
+        },
+        {
+          "command": "vstest.importToolHook",
+          "when": "view == hooks && viewItem == vueRouterExport",
           "group": "inline"
         }
       ]
@@ -45,7 +68,7 @@
     "compile": "webpack --mode development",
     "watch": "webpack --mode development --watch",
     "vscode:prepublish": "npm run package",
-    "package": "webpack --mode development --devtool hidden-source-map"
+    "package": "webpack --mode production --devtool hidden-source-map"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.7",
@@ -56,7 +79,6 @@
     "@vscode/test-cli": "^0.0.9",
     "@vscode/test-electron": "^2.4.0",
     "@vscode/vsce": "^3.0.0",
-    "esbuild": "^0.23.1",
     "eslint": "^8.57.0",
     "ignore-loader": "^0.1.2",
     "ts-loader": "^9.5.1",
