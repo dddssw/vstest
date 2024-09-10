@@ -1,8 +1,8 @@
 {
   "name": "vstest",
-  "displayName": "easy import hook(vue)",
+  "displayName": "Easy Import Hook",
   "description": "",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "engines": {
     "vscode": "^1.54.0"
   },
@@ -10,6 +10,7 @@
   "categories": [
     "Other"
   ],
+  "repository":"https://github.com/dddssw/vstest",
   "icon": "icon.jfif",
   "main": "./dist/extension",
   "contributes": {
