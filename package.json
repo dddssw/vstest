@@ -2,7 +2,7 @@
   "name": "vstest",
   "displayName": "Easy Import Hook",
   "description": "",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "engines": {
     "vscode": "^1.54.0"
   },
